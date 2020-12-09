@@ -21,14 +21,14 @@ use crate::commands::{
 //Get user command list
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(uc::help_op())).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(uc::help_op()); m}).await?;
     Ok(())
 }
 
 //Get some information about the bot
 #[command]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(uc::about_op())).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(uc::about_op()); m}).await?;
     Ok(())
 }
 
@@ -41,7 +41,7 @@ async fn user_info(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         return Ok(())
     }
     let embed = embed.unwrap();
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(embed)).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(embed); m}).await?;
     Ok(())
 }
 
@@ -54,7 +54,7 @@ async fn server_info(ctx: &Context, msg: &Message) -> CommandResult {
         return Ok(())
     }
     let embed = embed.unwrap();
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(embed)).await.unwrap();
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(embed); m}).await.unwrap();
     Ok(())
 }
 
@@ -93,7 +93,7 @@ async fn roles_list(ctx: &Context, msg: &Message) -> CommandResult {
     }
     let roles = roles.unwrap();
 
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(roles)).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(roles); m}).await?;
 
     Ok(())
 }
@@ -107,7 +107,7 @@ async fn my_warns(ctx: &Context, msg: &Message) -> CommandResult {
     }
     let warns = warns.unwrap();
 
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(warns)).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(warns); m}).await?;
 
     Ok(())
 }
@@ -127,7 +127,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[required_permissions(ADMINISTRATOR)]
 async fn admin_help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(ac::admin_help_op())).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(ac::admin_help_op()); m}).await?;
     Ok(())
 }
 
@@ -219,7 +219,7 @@ async fn user_list(ctx: &Context, msg: &Message) -> CommandResult {
     }
     let output = output.unwrap();
 
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(output)).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(output); m}).await?;
 
     Ok(())
 }
@@ -308,7 +308,7 @@ async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[required_permissions(ADMINISTRATOR)]
 async fn config_help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(cc::config_help_op())).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(cc::config_help_op()); m}).await?;
     Ok(())
 }
 
@@ -374,7 +374,7 @@ async fn start_roles_list(ctx: &Context, msg: &Message) -> CommandResult {
     }
     let roles = roles.unwrap();
 
-    msg.channel_id.send_message(&ctx.http, macros::m_embed!(roles)).await?;
+    msg.channel_id.send_message(&ctx.http, |m| {m.set_embed(roles); m}).await?;
 
     Ok(())
 }
