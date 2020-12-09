@@ -1,3 +1,6 @@
-/target
-/registries
+target
+registries/*
 token.txt
+actual_token.txt
+Makefile
+.cargo

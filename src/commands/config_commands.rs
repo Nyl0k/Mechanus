@@ -1,6 +1,5 @@
 use serenity::{
     prelude::*,
-    utils,
     builder::CreateEmbed,
     model::{
         prelude::*,
@@ -22,10 +21,11 @@ pub fn config_help_op() ->  CreateEmbed {
     e.field("&&config_help", "Displays this menu", false);
     e.field("&&initialize", "Creates a registry that holds user and server metadata, run this command first", false);
     e.field("&&uninitialize", "Deletes server registry", false);
-    e.field("&&add_start_role <@role>", "Make a role automatically given to registered users", false);
-    e.field("&&remove_start_role <@role>", "Remove a banned role", false);
-    e.field("&&add_banned_role <@role>", "Make a role inaccessible to non-admins", false);
-    e.field("&&remove_banned_role <@role>", "Remove a banned role", false);
+    e.field("&&add_start_role <role name>", "Make a role automatically given to registered users", false);
+    e.field("&&remove_start_role <role name>", "Remove a start role", false);
+    e.field("&&start_roles_list", "Get list of start roles", false);
+    e.field("&&add_allowed_role <role name>", "Make a role accessible to non-admins", false);
+    e.field("&&remove_allowed_role <role name>", "Remove an allowed role", false);
     e.field("&&set_logging_channel <#channel>", "Set which channel messages are logged in", false);
 
     e
@@ -68,7 +68,7 @@ pub async fn uninitialize_op(ctx: &Context, msg: &Message) -> Result<(), String>
     Ok(())
 }
 
-pub async fn add_start_role_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), String> {
+pub async fn add_start_role_op(ctx: &Context, msg: &Message, args: Args) -> Result<(), String> {
     let mut server = Server::new();
 
     let guild = msg.guild(&ctx).await;
@@ -81,33 +81,36 @@ pub async fn add_start_role_op(ctx: &Context, msg: &Message, mut args: Args) -> 
         return Err("Could not find registry".to_string());
     }
 
-    let role_name = args.single::<String>();
-    if let Err(_) = role_name {
-        return Err("Please supply a valid role name".to_string());
+    let mut role: Option<RoleId> = None;
+
+    for guild_role in &guild.roles{
+        if guild_role.1.name == *args.rest().to_string() {
+            role = Some(*guild_role.0);
+        }
     }
-    let role_name = role_name.unwrap();
 
-    if let None = utils::parse_role(&role_name) { return Err("Invalid role name".to_string()); };
-    let role_id = RoleId(utils::parse_role(&role_name[..]).unwrap());
+    if let None = role { return Err("Could not find role".to_string()); }
 
-    if server.start_roles.contains(&role_id){
+    let role = role.unwrap();
+
+    if server.start_roles.contains(&role){
         return Err("Role already a starting role".to_string());
     }
 
-    server.start_roles.push(role_id);
+    server.start_roles.push(role);
 
     if let Err(_) = write_to_json(&filepath, server){
         return Err("Could not find registry".to_string());
     }
 
-    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} added role {} to start roles", msg.author.name, role_name)).await{
+    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} added role {} to start roles", msg.author.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
         return Err(e);
     }
 
     Ok(())
 }
 
-pub async fn remove_start_role_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), String> {
+pub async fn remove_start_role_op(ctx: &Context, msg: &Message, args: Args) -> Result<(), String> {
     let mut server = Server::new();
 
     let guild = msg.guild(&ctx).await;
@@ -120,17 +123,20 @@ pub async fn remove_start_role_op(ctx: &Context, msg: &Message, mut args: Args) 
         return Err("Could not find registry".to_string());
     }
 
-    let role_name = args.single::<String>();
-    if let Err(_) = role_name {
-        return Err("Please supply a valid role name".to_string());
+    let mut role: Option<RoleId> = None;
+
+    for guild_role in &guild.roles{
+        if guild_role.1.name == *args.rest().to_string() {
+            role = Some(*guild_role.0);
+        }
     }
-    let role_name = role_name.unwrap();
 
-    if let None = utils::parse_role(&role_name) { return Err("Invalid role name".to_string()); };
-    let role_id = RoleId(utils::parse_role(&role_name[..]).unwrap());
+    if let None = role { return Err("Could not find role".to_string()); }
 
-    if server.start_roles.contains(&role_id){
-        server.start_roles.iter().position(|x|{ x == &role_id });
+    let role = role.unwrap();
+
+    if server.start_roles.contains(&role){
+        server.start_roles.iter().position(|x|{ x == &role });
     } else {
         return Err("Unable to find role in starting roles".to_string());
     }
@@ -139,7 +145,7 @@ pub async fn remove_start_role_op(ctx: &Context, msg: &Message, mut args: Args) 
         return Err("Could not find registry".to_string());
     }
 
-    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from start roles", msg.author.name, role_name)).await{
+    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from start roles", msg.author.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
         return Err(e);
     }
 
@@ -147,8 +153,37 @@ pub async fn remove_start_role_op(ctx: &Context, msg: &Message, mut args: Args) 
     Ok(())
 }
 
+pub async fn start_roles_list_op(ctx: &Context, msg: &Message) -> Result<CreateEmbed, String> {
+    let guid = msg.guild_id;
+    if let None = guid{ return Err("Invalid guild".to_string()); }
+    let guid = guid.unwrap();
+    
+    let mut server = Server::new();
+    match read_from_json(&format!("registries/{}.json", guid.as_u64()), &mut server) {
+        Ok(()) => (),
+        Err(_) => return Err("Invalid guild".to_string())
+    }
 
-pub async fn add_banned_role_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), String> {
+    let guild = Guild::get(&ctx.http, guid).await;
+    if let Err(_) = guild{ return Err("Error parsing to guild".to_string()); }
+    let guild = guild.unwrap();
+    
+    let mut response = String::new();
+    for role in guild.roles {
+        if server.start_roles.contains(&role.0) && role.1.name != "@everyone"{
+            response.push_str(&format!("{}\n", role.1.name)[..]);
+        }
+    }
+
+    let mut e = create_embed();
+    e.title("Start roles");
+    e.description(response);
+
+    Ok(e)
+}
+
+
+pub async fn add_allowed_role_op(ctx: &Context, msg: &Message, args: Args) -> Result<(), String> {
     let mut server = Server::new();
 
     let guild = msg.guild(&ctx).await;
@@ -161,26 +196,29 @@ pub async fn add_banned_role_op(ctx: &Context, msg: &Message, mut args: Args) ->
         return Err("Could not find registry".to_string());
     }
 
-    let role_name = args.single::<String>();
-    if let Err(_) = role_name {
-        return Err("Please supply a valid role name".to_string());
+    let mut role: Option<RoleId> = None;
+
+    for guild_role in &guild.roles{
+        if guild_role.1.name == *args.rest().to_string() {
+            role = Some(*guild_role.0);
+        }
     }
-    let role_name = role_name.unwrap();
 
-    if let None = utils::parse_role(&role_name) { return Err("Invalid role name".to_string()); };
-    let role_id = RoleId(utils::parse_role(&role_name[..]).unwrap());
+    if let None = role { return Err("Could not find role".to_string()); }
 
-    if server.banned_roles.contains(&role_id){
+    let role = role.unwrap();
+
+    if server.allowed_roles.contains(&role){
         return Err("Role already a starting role".to_string());
     }
 
-    server.banned_roles.push(role_id);
+    server.allowed_roles.push(role);
 
     if let Err(_) = write_to_json(&filepath, server){
         return Err("Could not find registry".to_string());
     }
 
-    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} added role {} to banned roles", msg.author.name, role_name)).await{
+    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} added role {} to allowed roles", msg.author.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
         return Err(e);
     }
 
@@ -188,12 +226,12 @@ pub async fn add_banned_role_op(ctx: &Context, msg: &Message, mut args: Args) ->
     Ok(())
 }
 
-pub async fn remove_banned_role_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), String> {
-    let mut server = Server::new();
-
+pub async fn remove_allowed_role_op(ctx: &Context, msg: &Message, args: Args) -> Result<(), String> {
     let guild = msg.guild(&ctx).await;
-    if let None = guild{ return Err("Could not find guild".to_string()); }
+    if let None = guild { return Err("Could not find guild".to_string())}
     let guild = guild.unwrap();
+
+    let mut server = Server::new();
 
     let filepath = format!("registries/{}.json", guild.id.as_u64());
 
@@ -201,26 +239,29 @@ pub async fn remove_banned_role_op(ctx: &Context, msg: &Message, mut args: Args)
         return Err("Could not find registry".to_string());
     }
 
-    let role_name = args.single::<String>();
-    if let Err(_) = role_name {
-        return Err("Please supply a valid role name".to_string());
+    let mut role: Option<RoleId> = None;
+
+    for guild_role in &guild.roles{
+        if guild_role.1.name == *args.rest().to_string() {
+            role = Some(*guild_role.0);
+        }
     }
-    let role_name = role_name.unwrap();
 
-    if let None = utils::parse_role(&role_name) { return Err("Invalid role name".to_string()); };
-    let role_id = RoleId(utils::parse_role(&role_name[..]).unwrap());
+    if let None = role { return Err("Could not find role".to_string()); }
 
-    if server.banned_roles.contains(&role_id){
-        server.banned_roles.iter().position(|x|{ x == &role_id });
+    let role = role.unwrap();
+
+    if server.allowed_roles.contains(&role){
+        server.allowed_roles.iter().position(|x|{ x == &role });
     } else {
         return Err("Unable to find role in starting roles".to_string());
     }
 
-    if let Err(_) = write_to_json(&filepath, server){
+    if let Err(_) = write_to_json(macros::filepath!(guild.id.as_u64()), server){
         return Err("Could not find registry".to_string());
     }
 
-    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from banned roles", msg.author.name, role_name)).await{
+    if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from allowed roles", msg.author.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
         return Err(e);
     }
 

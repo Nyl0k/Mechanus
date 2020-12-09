@@ -34,7 +34,7 @@ pub fn about_op() -> CreateEmbed {
     e.field("Overview", "Mechanus is a highly configurable administration bot, designed to help with all matters of running a server. User and server metadata are stored in a json file specific to the server, be sure to run &&initialize to create this file as few commands function without it. When a user joins, you must &&register_user them to enter them into the system, or enable automatic registration. See &&config_help for more information.", false);
     e.field("For users", "Mechanus provides several utilities to aid you in server life, including adding and removing roles from yourself and retrieving information about other users. Type &&help for more information", false);
     e.field("For admins", "Mechanus provide a whole host of functions for server administration, including logging, message purging, giving roles to new users upon arrival, and warning. Type &&admin_help for more info", false);
-    e.field("Configuration", "Mechanus can be configured in many ways, including whether to use manual registration, what roles are banned from public use, what channel messages should be logged in, and more. Type &&config_help for more info", false);
+    e.field("Configuration", "Mechanus can be configured in many ways, including whether to use manual registration, what roles are allowed for public use, what channel messages should be logged in, and more. Type &&config_help for more info", false);
     e.footer(|f|{ f.text("Contact @Starfall#7832 for more information"); f });
 
     e
@@ -127,8 +127,7 @@ pub async fn user_role_op(ctx: &Context, msg: &Message, args: Args, remove: bool
         return Err("Could not find registry".to_string()); 
     }
 
-    //Return if the role is banned
-    if server.banned_roles.contains(&role){ return Err("This role is inaccessible with this command".to_string()); }
+    if !server.allowed_roles.contains(&role){ return Err("This role is inaccessible with this command".to_string()); }
 
     //Get member object we can perform opertations on
     let mut member = guild.member(&ctx.http, &msg.author.id).await.unwrap();
@@ -138,14 +137,14 @@ pub async fn user_role_op(ctx: &Context, msg: &Message, args: Args, remove: bool
         if let Err(_) = member.remove_role(&ctx.http, &role).await {
             return Err("Could not give you this role".to_string());
         };
-        if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from user {}", msg.author, role.to_role_cached(&ctx).await.unwrap().name, member.user.name)).await{
+        if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from user {}", msg.author.name, role.to_role_cached(&ctx).await.unwrap().name, member.user.name)).await{
             return Err(e);
         }
     } else {
         if let Err(_) = member.add_role(&ctx.http, &role).await {
             return Err("Could not remove this role from you".to_string());
         }
-        if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} gave user {} role {}", msg.author, member.user.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
+        if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} gave user {} role {}", msg.author.name, member.user.name, role.to_role_cached(&ctx).await.unwrap().name)).await{
             return Err(e);
         }
     }
@@ -170,7 +169,7 @@ pub async fn roles_list_op(ctx: &Context, msg: &Message) -> Result<CreateEmbed, 
     
     let mut response = String::new();
     for role in guild.roles {
-        if !server.banned_roles.contains(&role.0) && role.1.name != "@everyone"{
+        if server.allowed_roles.contains(&role.0) && role.1.name != "@everyone"{
             response.push_str(&format!("{}\n", role.1.name)[..]);
         }
     }

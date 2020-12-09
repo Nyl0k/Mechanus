@@ -6,7 +6,10 @@ use serenity::{
     },
     http::Http,
     model::{
-        gateway::Ready,
+        gateway::{
+            Ready,
+            Activity,
+        },
     },
     prelude::*
 };
@@ -24,7 +27,8 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, _ready: Ready){
+    async fn ready(&self, ctx: Context, _ready: Ready){
+        ctx.set_activity(Activity::playing("&&help")).await;
         println!("Mechanus is online");
     }
 }
@@ -70,8 +74,9 @@ struct Admin;
     uninitialize,
     add_start_role, 
     remove_start_role,
-    add_banned_role,
-    remove_banned_role,
+    start_roles_list,
+    add_allowed_role,
+    remove_allowed_role,
     set_logging_channel,
 )]
 struct Config;

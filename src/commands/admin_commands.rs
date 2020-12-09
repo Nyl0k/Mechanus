@@ -22,7 +22,7 @@ pub fn admin_help_op() ->  CreateEmbed {
     e.field("&&give_role <@user> <role name>", "Give a user a role", false);
     e.field("&&take_role <@user> <role name", "Remove a role from a user", false);
     e.field("&&purge <number>", "Clear a number of messages from a channel", false);
-    e.field("&&get_user_list", "Get a list of current registered users", false);
+    e.field("&&user_list", "Get a list of current registered users", false);
     e.field("&&warn <@user> <reason>", "Warn a registered user", false);
     e.field("&&get_warns <@user>", "Get a list of warns a registered user has", false);
     e.field("&&forgive <@user> <reason>", "Remove a warn from a user", false);
@@ -53,7 +53,7 @@ pub async fn register_user_op(ctx: &Context, msg: &Message, mut args: Args) -> R
     let mut server = Server::new();
     if let Err(_) = read_from_json(&filepath, &mut server){ return Err("Could not read registry".to_string()); };
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} registered user {}", msg.author, user.name)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} registered user {}", msg.author.name, user.name)).await{
         return Err(e);
     }
 
@@ -83,7 +83,7 @@ pub async fn deregister_user_op(ctx: &Context, msg: &Message, mut args: Args) ->
         return Err("Could not register user".to_string());
     };
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} deregistered user {}", msg.author, user.name)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} deregistered user {}", msg.author.name, user.name)).await{
         return Err(e);
     }
 
@@ -109,7 +109,7 @@ pub async fn mass_register_op(ctx: &Context, msg: &Message) -> Result<(), String
         }
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} registered all users", msg.author)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} registered all users", msg.author.name)).await{
         return Err(e);
     }
 
@@ -148,7 +148,7 @@ pub async fn role_op(ctx: &Context, msg: &Message, mut args: Args, give: bool) -
             .add_role(&ctx.http, role).await.unwrap();
 
             if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} removed role {} from user {}", 
-                msg.author, 
+                msg.author.name, 
                 role.to_role_cached(&ctx).await.unwrap().name, 
                 user_id.to_user(&ctx.http).await.unwrap().name)
             ).await{
@@ -160,7 +160,7 @@ pub async fn role_op(ctx: &Context, msg: &Message, mut args: Args, give: bool) -
             .remove_role(&ctx.http, role).await.unwrap();
 
             if let Err(e) = log(&ctx, *guild.id.as_u64(), format!("{} gave user {} role {}", 
-                msg.author, 
+                msg.author.name, 
                 user_id.to_user(&ctx.http).await.unwrap().name, 
                 role.to_role_cached(&ctx).await.unwrap().name)
             ).await{
@@ -190,7 +190,7 @@ pub async fn purge_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<()
         return Err("Unable to purge messages".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} purged {} messages in {}", msg.author, quant, msg.channel(&ctx).await.unwrap().guild().unwrap().name)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} purged {} messages in {}", msg.author.name, quant, msg.channel(&ctx).await.unwrap().guild().unwrap().name)).await{
         return Err(e);
     }
 
@@ -198,7 +198,7 @@ pub async fn purge_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<()
     Ok(())
 }
 
-pub async fn user_list_op(msg: &Message) -> Result<String, String> {
+pub async fn user_list_op(msg: &Message) -> Result<CreateEmbed, String> {
     let mut server = Server::new();
 
     let guild_id = msg.guild_id;
@@ -211,7 +211,16 @@ pub async fn user_list_op(msg: &Message) -> Result<String, String> {
         return Err("Could not return registry".to_string());
     }
 
-    Ok(format!("User list:\n ```json\n{:#?}\n```", server.users))
+    let mut userlist = "".to_string();
+
+    for user in server.users{
+        userlist.push_str(&format!("{}\n", user.username)[..]);
+    }
+
+    let mut output = create_embed();
+    output.field("Users:", userlist, false);
+
+    Ok(output)
 }
 
 pub async fn warn_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), String> {
@@ -253,7 +262,7 @@ pub async fn warn_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(),
         return Err("Could not notify user of warn".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} warned user {} for {}", msg.author, user.name, reason)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} warned user {} for {}", msg.author.name, user.name, reason)).await{
         return Err(e);
     }
 
@@ -331,7 +340,7 @@ pub async fn forgive_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<
         return Err("Could not notify user of forgiveness".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} forgave user {} for {}", msg.author, user.name, reason)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} forgave user {} for {}", msg.author.name, user.name, reason)).await{
         return Err(e);
     }
 
@@ -376,7 +385,7 @@ pub async fn forgive_all_op(ctx: &Context, msg: &Message, mut args: Args) -> Res
         return Err("Could not notify user of forgiveness".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} forgave user {} for everything", msg.author, user.name)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} forgave user {} for everything", msg.author.name, user.name)).await{
         return Err(e);
     }
 
@@ -410,7 +419,7 @@ pub async fn kick_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(),
         return Err("Could not kick user".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} kicked user {} for {}", msg.author, user.name, reason)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} kicked user {} for {}", msg.author.name, user.name, reason)).await{
         return Err(e);
     }
 
@@ -451,7 +460,7 @@ pub async fn ban_op(ctx: &Context, msg: &Message, mut args: Args) -> Result<(), 
         return Err("Could not ban user".to_string());
     }
 
-    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} banned user {} for {}", msg.author, user.name, reason)).await{
+    if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} banned user {} for {}", msg.author.name, user.name, reason)).await{
         return Err(e);
     }
 

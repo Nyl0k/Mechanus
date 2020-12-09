@@ -219,7 +219,7 @@ async fn user_list(ctx: &Context, msg: &Message) -> CommandResult {
     }
     let output = output.unwrap();
 
-    msg.channel_id.say(&ctx.http, output).await?;
+    msg.channel_id.send_message(&ctx.http, macros::m_embed!(output)).await?;
 
     Ok(())
 }
@@ -366,8 +366,23 @@ async fn remove_start_role(ctx: &Context, msg: &Message, args: Args) -> CommandR
 
 #[command]
 #[required_permissions(ADMINISTRATOR)]
-async fn add_banned_role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if let Err(e) = cc::add_banned_role_op(&ctx, &msg, args).await {
+async fn start_roles_list(ctx: &Context, msg: &Message) -> CommandResult {
+    let roles = cc::start_roles_list_op(&ctx, &msg).await;
+    if let Err(e) = roles {
+        msg.channel_id.say(&ctx.http, e).await?;
+        return Ok(());
+    }
+    let roles = roles.unwrap();
+
+    msg.channel_id.send_message(&ctx.http, macros::m_embed!(roles)).await?;
+
+    Ok(())
+}
+
+#[command]
+#[required_permissions(ADMINISTRATOR)]
+async fn add_allowed_role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if let Err(e) = cc::add_allowed_role_op(&ctx, &msg, args).await {
         msg.channel_id.say(&ctx.http, e).await?;
         return Ok(())
     }
@@ -379,8 +394,8 @@ async fn add_banned_role(ctx: &Context, msg: &Message, args: Args) -> CommandRes
 
 #[command]
 #[required_permissions(ADMINISTRATOR)]
-async fn remove_banned_role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if let Err(e) = cc::remove_banned_role_op(&ctx, &msg, args).await {
+async fn remove_allowed_role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if let Err(e) = cc::remove_allowed_role_op(&ctx, &msg, args).await {
         msg.channel_id.say(&ctx.http, e).await?;
         return Ok(())
     }
