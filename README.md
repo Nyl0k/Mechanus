@@ -2,7 +2,7 @@
 
 Admin bot for a few select discord servers
 
-Creates a registry for each server its in stored in the workspace
+Creates a registry for each server its; stored in the registries folder (not included)
 
 Requires a token file to run, make a text file called "token.txt" in the root folder and paste the token in
 
