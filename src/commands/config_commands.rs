@@ -257,7 +257,7 @@ pub async fn remove_allowed_role_op(ctx: &Context, msg: &Message, args: Args) ->
         return Err("Unable to find role in starting roles".to_string());
     }
 
-    if let Err(_) = write_to_json(macros::filepath!(guild.id.as_u64()), server){
+    if let Err(_) = write_to_json(&format!("registries/{}.json", guild.id.as_u64()), server){
         return Err("Could not find registry".to_string());
     }
 
