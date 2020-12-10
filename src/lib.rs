@@ -153,29 +153,6 @@ pub fn create_embed() -> CreateEmbed {
     e
 }
 
-pub async fn read_registry(ctx: &Context, msg: &Message) -> Result<Server, String> {
-    let mut server = Server::new();
-
-    let guild = msg.guild(&ctx).await;
-    if let None = guild{ return Err("Could not find guild".to_string()); }
-    let guild = guild.unwrap();
-
-    let filepath = format!("registries/{}.json", guild.id.as_u64());
-
-    if let Err(_) = read_from_json(&filepath, &mut server){
-        return Err("Could not find registry".to_string());
-    }
-
-    Ok(server)
-}
-
-pub async fn get_msg_info<'a>(ctx: &Context, msg: &'a Message) -> Result<(&'a User, Guild), String> {
-    let guild = msg.guild(&ctx).await;
-    if let None = guild { return Err("Could not find guild".to_string())}
-    let guild = guild.unwrap();
-    Ok((&msg.author, guild))
-}
-
 pub async fn log(ctx: &Context, guild_id: u64, message: String) -> Result<(), String> {
     let mut server = Server::new();
 
