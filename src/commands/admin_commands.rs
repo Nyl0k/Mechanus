@@ -51,7 +51,7 @@ pub async fn register_user_op(ctx: &Context, msg: &Message, mut args: Args) -> R
     let filepath = format!("registries/{}.json", msg.guild_id.unwrap());
 
     let mut server = Server::new();
-    if let Err(_) = read_from_json(&filepath, &mut server){ return Err("Could not read registry".to_string()); };}
+    if let Err(_) = read_from_json(&filepath, &mut server){ return Err("Could not read registry".to_string()); };
 
     for role in server.start_roles{
         msg.guild_id.unwrap_or_default()
@@ -61,7 +61,7 @@ pub async fn register_user_op(ctx: &Context, msg: &Message, mut args: Args) -> R
 
     if let Err(e) = log(&ctx, *msg.guild_id.unwrap().as_u64(), format!("{} registered user {}", msg.author.name, user.name)).await{
         return Err(e);
-
+    }
     Ok(())
 }
 
